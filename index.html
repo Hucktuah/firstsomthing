@@ -92,5 +92,318 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="game.js"></script>
+
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First Person 3D Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+        }
+
+        #hud {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 100;
+        }
+
+        #crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 30px;
+            z-index: 200;
+            pointer-events: none;
+        }
+
+        #instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            font-size: 14px;
+            opacity: 0.7;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 100;
+        }
+
+        #ammo {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 100;
+        }
+
+        /* Chat Box Styles */
+        #chatContainer {
+            position: fixed;
+            bottom: 20px;
+            right: 200px;
+            width: 300px;
+            height: 400px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ff00;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            z-index: 150;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        #chatHeader {
+            background: rgba(0, 100, 0, 0.7);
+            padding: 10px;
+            border-bottom: 2px solid #00ff00;
+            font-weight: bold;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #chatToggle {
+            background: none;
+            border: none;
+            color: #00ff00;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #chatMessages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-message {
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            word-wrap: break-word;
+        }
+
+        .chat-message.player {
+            background: rgba(0, 150, 255, 0.3);
+            border-left: 3px solid #00aaff;
+            align-self: flex-end;
+            max-width: 85%;
+        }
+
+        .chat-message.system {
+            background: rgba(100, 100, 100, 0.3);
+            border-left: 3px solid #888;
+            align-self: center;
+            max-width: 90%;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        #chatInput {
+            display: flex;
+            gap: 5px;
+            padding: 10px;
+            border-top: 2px solid #00ff00;
+            background: rgba(0, 40, 0, 0.5);
+            border-radius: 0 0 6px 6px;
+        }
+
+        #messageInput {
+            flex: 1;
+            background: rgba(0, 50, 0, 0.8);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+
+        #messageInput::placeholder {
+            color: #00aa00;
+            opacity: 0.6;
+        }
+
+        #messageInput:focus {
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.8);
+        }
+
+        #sendBtn {
+            background: rgba(0, 100, 0, 0.8);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        #sendBtn:hover {
+            background: rgba(0, 150, 0, 1);
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.8);
+        }
+
+        #sendBtn:active {
+            transform: scale(0.95);
+        }
+
+        #chatMessages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chatMessages::-webkit-scrollbar-track {
+            background: rgba(0, 50, 0, 0.5);
+        }
+
+        #chatMessages::-webkit-scrollbar-thumb {
+            background: rgba(0, 150, 0, 0.7);
+            border-radius: 3px;
+        }
+
+        #chatMessages::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 200, 0, 1);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div id="hud">
+        <div>Health: <span id="health">100</span></div>
+        <div>Enemies: <span id="enemies">10</span></div>
+        <div>Score: <span id="score">0</span></div>
+    </div>
+
+    <div id="crosshair">+</div>
+
+    <div id="ammo">
+        Ammo: <span id="ammoCount">30</span> / <span id="ammoReserve">150</span>
+    </div>
+
+    <!-- Chat Box -->
+    <div id="chatContainer">
+        <div id="chatHeader">
+            <span>Chat</span>
+            <button id="chatToggle">−</button>
+        </div>
+        <div id="chatMessages"></div>
+        <div id="chatInput">
+            <input type="text" id="messageInput" placeholder="Type message...">
+            <button id="sendBtn">Send</button>
+        </div>
+    </div>
+
+    <div id="instructions">
+        <strong>Controls:</strong><br>
+        W/A/S/D - Move<br>
+        Mouse - Look Around<br>
+        Click - Shoot<br>
+        Space - Jump<br>
+        R - Reload<br>
+        ESC - Exit Fullscreen<br>
+        T - Toggle Chat
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="game.js"></script>
+    <script>
+        // Chat System
+        const chatContainer = document.getElementById('chatContainer');
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatToggle = document.getElementById('chatToggle');
+        let chatMinimized = false;
+
+        // Send message on button click
+        sendBtn.addEventListener('click', sendMessage);
+
+        // Send message on Enter key
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Toggle chat visibility with T key
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 't') {
+                toggleChat();
+            }
+        });
+
+        // Toggle chat minimize/maximize
+        chatToggle.addEventListener('click', toggleChat);
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message === '') return;
+
+            addMessage(message, 'player');
+            messageInput.value = '';
+
+            // Simulate system response
+            setTimeout(() => {
+                addMessage('Player: ' + message, 'system');
+            }, 500);
+        }
+
+        function addMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-message ${sender}`;
+            msgDiv.textContent = text;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function toggleChat() {
+            chatMinimized = !chatMinimized;
+            const chatContent = chatContainer.querySelector('#chatMessages').parentElement.parentElement;
+            if (chatMinimized) {
+                document.getElementById('chatMessages').style.display = 'none';
+                document.getElementById('chatInput').style.display = 'none';
+                chatToggle.textContent = '+';
+            } else {
+                document.getElementById('chatMessages').style.display = 'flex';
+                document.getElementById('chatInput').style.display = 'flex';
+                chatToggle.textContent = '−';
+            }
+        }
+
+        // Add initial system message
+        addMessage('Chat system initialized', 'system');
+    </script>
+
+
+
+
+
 </body>
 </html>
